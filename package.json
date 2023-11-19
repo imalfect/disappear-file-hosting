@@ -16,6 +16,7 @@
     "@types/uuid": "^9.0.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "filereader": "^0.10.3",
     "framer-motion": "^10.16.5",
     "lucide-react": "^0.292.0",
     "mongoose": "^8.0.1",

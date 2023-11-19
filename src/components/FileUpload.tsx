@@ -1,28 +1,28 @@
 import Upload from 'rc-upload';
 import {Mouse, MousePointerSquareDashed} from 'lucide-react';
-import uploadFile from '@/upload/uploadFile';
 import toast from 'react-hot-toast';
 interface ICustomRequestParams {
 	file: File;
 }
+interface IUploadResponse extends Response {
+	uploadedId: string;
+}
 export default function FileUpload(props: {
 	onUpload: (uploadId: string) => void;
 }) {
-	const customRequest = ({ file }: ICustomRequestParams)  => {
-		console.log(file);
-		// FileReader to read the download
-		const reader = new FileReader();
-		reader.readAsDataURL(file);
-		reader.onload = async () => {
-			const uploadToast = toast.loading('Uploading the file...');
-			const base64 = reader.result;
-			const uploadedId = await uploadFile(file.name, base64 as string);
-			toast.success('File uploaded successfully!', {
-				id: uploadToast
-			});
-			props.onUpload(uploadedId);
-			console.log(uploadedId);
-		};
+	const customRequest = async ({ file }: ICustomRequestParams)  => {
+		const formData = new FormData();
+		formData.append('file', file);
+		const uploadToast = toast.loading('Uploading the file...');
+		const uploadedId: IUploadResponse = await fetch('/api/upload', {
+			method: 'POST',
+			body: formData
+		}).then(res => res.json());
+		console.log(uploadedId);
+		toast.success('File uploaded successfully!', {
+			id: uploadToast
+		});
+		props.onUpload(uploadedId.uploadedId);
 	};
 	const readerProps = {
 		type: 'drag',
@@ -45,6 +45,5 @@ export default function FileUpload(props: {
 				</div>
 			</Upload>
 		</div>
-
 	);
 }
