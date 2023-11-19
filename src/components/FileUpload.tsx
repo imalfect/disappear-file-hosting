@@ -4,25 +4,32 @@ import toast from 'react-hot-toast';
 interface ICustomRequestParams {
 	file: File;
 }
-interface IUploadResponse extends Response {
+interface IUploadJSON extends Response {
 	uploadedId: string;
 }
 export default function FileUpload(props: {
 	onUpload: (uploadId: string) => void;
+	slug?: string;
 }) {
 	const customRequest = async ({ file }: ICustomRequestParams)  => {
 		const formData = new FormData();
 		formData.append('file', file);
 		const uploadToast = toast.loading('Uploading the file...');
-		const uploadedId: IUploadResponse = await fetch('/api/upload', {
+		const uploadedRequest = await fetch(`/api/upload?slug=${props.slug}`, {
 			method: 'POST',
 			body: formData
-		}).then(res => res.json());
-		console.log(uploadedId);
+		});
+		if (!uploadedRequest.ok) {
+			toast.error(`Failed to upload file! Code: ${uploadedRequest.status}`, {
+				id: uploadToast
+			});
+			return;
+		}
+		const uploadedJSON: IUploadJSON = await uploadedRequest.json();
 		toast.success('File uploaded successfully!', {
 			id: uploadToast
 		});
-		props.onUpload(uploadedId.uploadedId);
+		props.onUpload(uploadedJSON.uploadedId);
 	};
 	const readerProps = {
 		type: 'drag',

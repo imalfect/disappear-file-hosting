@@ -1,7 +1,7 @@
 import uploadFile from '@/s3/functions/uploadFile';
 import saveUploadedFileInfo from '@/db/functions/saveUploadedFileInfo';
 import {lookup} from 'mrmime';
-export default async function upload(fileName: string, fileBody: ArrayBuffer): Promise<string> {
+export default async function upload(fileName: string, fileBody: ArrayBuffer, slug?: string): Promise<string> {
 	const fileExtension = fileName.split('.').pop();
 	console.log(`New file upload: ${fileName} (${fileExtension})`);
 	// Get mime from name and size from stream
@@ -11,6 +11,6 @@ export default async function upload(fileName: string, fileBody: ArrayBuffer): P
 	console.log('Uploading to S3...');
 	const fileKey = await uploadFile(fileName, fileBody);
 	console.log(`Uploaded to S3 with Key: ${fileKey}`);
-	const saved = await saveUploadedFileInfo(fileName, mime || 'application/octet-stream', fileBody.byteLength, fileKey);
+	const saved = await saveUploadedFileInfo(fileName, mime || 'application/octet-stream', fileBody.byteLength, fileKey, slug);
 	return saved.toString();
 }
