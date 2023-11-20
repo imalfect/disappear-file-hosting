@@ -8,14 +8,14 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import {useState} from 'react';
-import {Input} from '@/components/ui/input';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
 import slugAvailable from '@/db/functions/slugAvailable';
 import toast from 'react-hot-toast';
 export default function SlugDialog(props: {
-    // eslint-disable-next-line react/require-default-props
-    open: boolean;
-    onOpenChange: () => void;
+	// eslint-disable-next-line react/require-default-props
+	open: boolean;
+	onOpenChange: () => void;
 	slugChange: (slug: string) => void;
 }) {
 	const [slug, setSlug] = useState('');
@@ -25,7 +25,7 @@ export default function SlugDialog(props: {
 				<DialogHeader>
 					<DialogTitle>Set upload slug</DialogTitle>
 					<DialogDescription>
-                        Use the text field below to set a custom slug for your upload. This will make your temp upload link shorter and easier to remember.
+						Use the text field below to set a custom slug for your upload. This will make your temp upload link shorter and easier to remember.
 					</DialogDescription>
 				</DialogHeader>
 				<div>
@@ -44,6 +44,11 @@ export default function SlugDialog(props: {
 						<Button
 							type="submit"
 							onClick={async () => {
+								const regex = /^[A-Za-z0-9]+$/;
+								if (!regex.test(slug)) {
+									toast.error('Slug cannot contain special characters!');
+									return;
+								}
 								const isSlugAvailable = await slugAvailable(slug);
 								if (!isSlugAvailable) {
 									toast.error('Slug is not available!');
