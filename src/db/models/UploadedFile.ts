@@ -17,5 +17,5 @@ const uploadedFileSchema = new mongoose.Schema<IUploadedFile>({
 	uploadedAt: { type: Number, required: true },
 	slug: { type: String, required: false },
 });
-uploadedFileSchema.path('uploadedAt').index({ expires: '60s' });
+uploadedFileSchema.path('uploadedAt').index({ expires: '60' });
 export const UploadedFile = mongoose.models.UploadedFile || mongoose.model<IUploadedFile>('UploadedFile', uploadedFileSchema);
