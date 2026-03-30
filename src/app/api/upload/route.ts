@@ -22,6 +22,21 @@ async function verifyTurnstile(token: string): Promise<boolean> {
 export async function POST(request: NextRequest) {
 	const slug = request.nextUrl.searchParams.get('slug') || undefined;
 	const captchaToken = request.nextUrl.searchParams.get('captcha') || undefined;
+	const encrypted = request.nextUrl.searchParams.get('encrypted') === '1';
+	const encSalt = request.nextUrl.searchParams.get('salt') || undefined;
+	const encIv = request.nextUrl.searchParams.get('iv') || undefined;
+
+	if (encrypted) {
+		if (!encSalt || !encIv) {
+			return NextResponse.json({ error: 'Missing encryption metadata' }, { status: 400 });
+		}
+		if (!/^[0-9a-f]{32}$/.test(encSalt)) {
+			return NextResponse.json({ error: 'Invalid salt format' }, { status: 400 });
+		}
+		if (!/^[0-9a-f]{24}$/.test(encIv)) {
+			return NextResponse.json({ error: 'Invalid IV format' }, { status: 400 });
+		}
+	}
 
 	if (slug) {
 		if (!/^[A-Za-z0-9]+$/.test(slug)) {
@@ -55,7 +70,8 @@ export async function POST(request: NextRequest) {
 	}
 
 	const fileBody = await file.arrayBuffer();
-	const uploadedId = await upload(file.name, fileBody, slug);
+	const encryptionMeta = encrypted ? { salt: encSalt!, iv: encIv! } : undefined;
+	const uploadedId = await upload(file.name, fileBody, slug, encryptionMeta);
 
 	return NextResponse.json({ uploadedId });
 }

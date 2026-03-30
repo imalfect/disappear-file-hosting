@@ -8,6 +8,9 @@ export const uploadedFiles = pgTable('uploaded_files', {
 	fileKey: text().notNull(),
 	uploadedAt: integer().notNull(),
 	slug: text().unique(),
+	isEncrypted: integer(),
+	encryptionSalt: text(),
+	encryptionIv: text(),
 });
 
 export type UploadedFile = typeof uploadedFiles.$inferSelect;
