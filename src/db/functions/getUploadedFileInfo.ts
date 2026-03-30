@@ -1,17 +1,13 @@
-import { IUploadedFile, UploadedFile } from '@/db/models/UploadedFile';
-import connectDB from '@/db/connect';
-import type { Document } from 'mongoose';
+import { eq } from 'drizzle-orm';
+import { db } from '@/db';
+import { uploadedFiles, type UploadedFile } from '@/db/schema';
 
-export async function getUploadedFileInfoById(id: string): Promise<(Document & IUploadedFile) | null> {
-	await connectDB();
-	const file = await UploadedFile.findById(id);
-	if (!file) return null;
-	return JSON.parse(JSON.stringify(file));
+export async function getUploadedFileInfoById(id: string): Promise<UploadedFile | null> {
+	const [file] = await db().select().from(uploadedFiles).where(eq(uploadedFiles.id, id)).limit(1);
+	return file ?? null;
 }
 
-export async function getUploadedFileInfoBySlug(slug: string): Promise<(Document & IUploadedFile) | null> {
-	await connectDB();
-	const file = await UploadedFile.findOne({ slug });
-	if (!file) return null;
-	return JSON.parse(JSON.stringify(file));
+export async function getUploadedFileInfoBySlug(slug: string): Promise<UploadedFile | null> {
+	const [file] = await db().select().from(uploadedFiles).where(eq(uploadedFiles.slug, slug)).limit(1);
+	return file ?? null;
 }

@@ -14,5 +14,5 @@ export async function GET(request: NextRequest) {
 		return new Response('File not found', { status: 404 });
 	}
 
-	redirect(`/viewfile/${fileInfo._id}`);
+	redirect(`/viewfile/${fileInfo.id}`);
 }

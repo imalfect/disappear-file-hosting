@@ -1,5 +1,4 @@
 import { notFound } from 'next/navigation';
-import { isValidObjectId } from 'mongoose';
 import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
 import prettyBytes from 'pretty-bytes';
 import Title from '@/components/Title';
@@ -40,10 +39,6 @@ function timeRemaining(uploadedAt: number): string {
 
 export default async function ViewFilePage({ params }: { params: Promise<{ id: string }> }) {
 	const { id } = await params;
-
-	if (!isValidObjectId(id)) {
-		notFound();
-	}
 
 	const fileInfo = await getUploadedFileInfoById(id);
 	if (!fileInfo) {

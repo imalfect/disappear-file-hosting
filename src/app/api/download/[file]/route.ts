@@ -1,16 +1,15 @@
 import { type NextRequest } from 'next/server';
-import { isValidObjectId } from 'mongoose';
 import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
 import getPresignedUrl from '@/s3/functions/getPresignedUrl';
 
 export async function GET(request: NextRequest) {
 	const id = request.nextUrl.pathname.split('/').pop();
 
-	if (!isValidObjectId(id)) {
+	if (!id) {
 		return new Response('Invalid ID', { status: 400 });
 	}
 
-	const fileInfo = await getUploadedFileInfoById(id!);
+	const fileInfo = await getUploadedFileInfoById(id);
 	if (!fileInfo) {
 		return new Response('File not found', { status: 404 });
 	}
