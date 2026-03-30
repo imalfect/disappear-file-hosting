@@ -2,10 +2,8 @@ import { notFound } from 'next/navigation';
 import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
 import prettyBytes from 'pretty-bytes';
 import Title from '@/components/Title';
-import { Button } from '@/components/ui/button';
-import EncryptedDownload from '@/components/EncryptedDownload';
+import FileDownload from '@/components/FileDownload';
 import {
-	Download,
 	FileText,
 	FileVideo,
 	FileAudio,
@@ -112,21 +110,14 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 					{/* Download */}
 					{!isExpired && (
 						<div className="p-4">
-							{isEncrypted && fileInfo.encryptionSalt && fileInfo.encryptionIv ? (
-								<EncryptedDownload
-									fileId={id}
-									fileName={fileInfo.originalName}
-									salt={fileInfo.encryptionSalt}
-									iv={fileInfo.encryptionIv}
-								/>
-							) : (
-								<Button className="w-full" asChild>
-									<a href={`/api/download/${id}`}>
-										<Download className="h-4 w-4" />
-										download
-									</a>
-								</Button>
-							)}
+							<FileDownload
+								fileId={id}
+								fileName={fileInfo.originalName}
+								fileSize={fileInfo.size}
+								encrypted={isEncrypted}
+								salt={fileInfo.encryptionSalt ?? undefined}
+								iv={fileInfo.encryptionIv ?? undefined}
+							/>
 						</div>
 					)}
 				</div>
