@@ -7,7 +7,8 @@ import Title from '@/components/Title';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Link2 } from 'lucide-react';
+import { Link2, Code2, ScrollText } from 'lucide-react';
+import Link from 'next/link';
 
 export default function Home() {
 	const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -44,7 +45,7 @@ export default function Home() {
 
 			<FileUpload onUpload={onUpload} slug={slug} />
 
-			<div className="mt-3">
+			<div className="mt-3 flex flex-wrap items-center justify-center gap-1">
 				<Button
 					variant="ghost"
 					size="sm"
@@ -53,6 +54,28 @@ export default function Home() {
 				>
 					<Link2 className="h-3 w-3" />
 					{slug ? `slug: ${slug}` : 'set custom slug'}
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="text-xs font-mono text-muted-foreground"
+					asChild
+				>
+					<Link href="/docs">
+						<Code2 className="h-3 w-3" />
+						api
+					</Link>
+				</Button>
+				<Button
+					variant="ghost"
+					size="sm"
+					className="text-xs font-mono text-muted-foreground"
+					asChild
+				>
+					<Link href="/terms">
+						<ScrollText className="h-3 w-3" />
+						terms
+					</Link>
 				</Button>
 			</div>
 
