@@ -10,12 +10,22 @@ import {
 } from '@/components/ui/dialog';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useState } from 'react';
+import QRCode from 'react-qr-code';
 
 interface SuccessDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	fullLink: string;
 	shortLink?: string;
+}
+
+function truncateUrl(url: string, max: number = 40): string {
+	if (url.length <= max) return url;
+	const proto = url.indexOf('://');
+	const start = proto > -1 ? proto + 3 : 0;
+	const path = url.slice(start);
+	if (path.length <= max) return path;
+	return path.slice(0, max - 3) + '...';
 }
 
 export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink }: SuccessDialogProps) {
@@ -33,6 +43,8 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 		}
 	};
 
+	const qrLink = shortLink || fullLink;
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
@@ -42,19 +54,20 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 						file is live — expires in 24 hours
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-2">
+				<div className="space-y-3">
 					<div className="flex items-center gap-2">
-						<div className="flex-1 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate">
-							{fullLink}
+						<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={fullLink}>
+							{truncateUrl(fullLink)}
 						</div>
 						<Button
 							variant="outline"
 							size="icon"
+							className="shrink-0"
 							onClick={() => copyToClipboard(fullLink, 'full')}
 						>
 							{copiedFull ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
 						</Button>
-						<Button variant="outline" size="icon" asChild>
+						<Button variant="outline" size="icon" className="shrink-0" asChild>
 							<a href={fullLink} target="_blank" rel="noreferrer">
 								<ExternalLink className="h-3.5 w-3.5" />
 							</a>
@@ -62,23 +75,39 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 					</div>
 					{shortLink && (
 						<div className="flex items-center gap-2">
-							<div className="flex-1 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate">
-								{shortLink}
+							<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={shortLink}>
+								{truncateUrl(shortLink)}
 							</div>
 							<Button
 								variant="outline"
 								size="icon"
+								className="shrink-0"
 								onClick={() => copyToClipboard(shortLink, 'short')}
 							>
 								{copiedShort ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
 							</Button>
-							<Button variant="outline" size="icon" asChild>
+							<Button variant="outline" size="icon" className="shrink-0" asChild>
 								<a href={shortLink} target="_blank" rel="noreferrer">
 									<ExternalLink className="h-3.5 w-3.5" />
 								</a>
 							</Button>
 						</div>
 					)}
+
+					<div className="flex justify-center py-2">
+						<div className="border border-border p-3 bg-white">
+							<QRCode
+								value={qrLink}
+								size={140}
+								bgColor="#ffffff"
+								fgColor="#000000"
+								level="M"
+							/>
+						</div>
+					</div>
+					<p className="text-xs font-mono text-muted-foreground text-center">
+						scan to open {shortLink ? 'short link' : 'file'}
+					</p>
 				</div>
 			</DialogContent>
 		</Dialog>

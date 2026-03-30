@@ -71,14 +71,16 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		const uploadName = randomName ? randomizeFileName(file.name) : file.name;
 
 		let fileToUpload: File | Blob = processedFile;
-		let encryptionParams = '';
+		const params = new URLSearchParams();
 
 		if (password) {
 			setStage('encrypting');
 			try {
 				const { encrypted, salt, iv } = await encryptFile(processedFile, password);
 				fileToUpload = new File([encrypted], uploadName, { type: 'application/octet-stream' });
-				encryptionParams = `&encrypted=1&salt=${salt}&iv=${iv}`;
+				params.set('encrypted', '1');
+				params.set('salt', salt);
+				params.set('iv', iv);
 			} catch {
 				toast.error('encryption failed — try again or remove the password');
 				setStage('confirm');
@@ -120,11 +122,10 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 			reset();
 		});
 
-		const params = new URLSearchParams();
 		if (slug) params.set('slug', slug);
 		if (captchaToken) params.set('captcha', captchaToken);
 		const qs = params.toString();
-		const url = `/api/upload${qs ? `?${qs}` : ''}${encryptionParams}`;
+		const url = `/api/upload${qs ? `?${qs}` : ''}`;
 
 		xhr.open('POST', url);
 		xhr.send(formData);
