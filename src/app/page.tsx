@@ -34,7 +34,7 @@ export default function Home() {
 	};
 
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-center px-4">
+		<main className="flex h-dvh flex-col items-center justify-center px-6 sm:px-8">
 			<div className="flex flex-col items-center gap-3 mb-4">
 				<Title />
 				<p className="text-xs font-mono text-muted-foreground tracking-wide">
