@@ -1,12 +1,13 @@
 'use client';
 
-import { motion } from 'framer-motion';
 import FileUpload from '@/components/FileUpload';
 import SuccessDialog from '@/components/SuccessDialog';
-import {useState} from 'react';
-import Title from '@/components/Title';
 import SlugDialog from '@/components/SlugDialog';
-import toast from 'react-hot-toast';
+import Title from '@/components/Title';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Link2 } from 'lucide-react';
 
 export default function Home() {
 	const [successDialogOpen, setSuccessDialogOpen] = useState(false);
@@ -14,44 +15,58 @@ export default function Home() {
 	const [fullLink, setFullLink] = useState('');
 	const [shortLink, setShortLink] = useState('');
 	const [slug, setSlug] = useState('');
+
 	const onUpload = (uploadId: string) => {
-		setSuccessDialogOpen(true);
-		// FIXME: set the correct links
-		// FIXME: make sure text doesnt overflow
-		setFullLink(`https://dspr.lol/viewfile/${uploadId}`);
-		if (slug !== '') {
-			setShortLink(`https://dspr.lol/${slug}`);
+		const origin = window.location.origin;
+		setFullLink(`${origin}/viewfile/${uploadId}`);
+		if (slug) {
+			setShortLink(`${origin}/${slug}`);
+		} else {
+			setShortLink('');
 		}
+		setSuccessDialogOpen(true);
 	};
-	const slugChange = (slug: string) => {
-		toast.success('Slug set successfully!');
-		setSlug(slug);
+
+	const handleSlugChange = (newSlug: string) => {
+		toast.success(`slug set: ${newSlug}`);
+		setSlug(newSlug);
 		setSlugDialogOpen(false);
 	};
+
 	return (
-		<main className="flex min-h-screen flex-col items-center p-24">
-			<motion.div
-				animate={{opacity: 1}}
-				initial={{opacity: 0}}
-				transition={{duration:0.5}}>
-				<Title/>
-			</motion.div>
-			<motion.div
-				animate={{opacity: 1}}
-				initial={{opacity: 0}}
-				transition={{duration:0.5, delay: 0.3}}>
-				<h2 className={'text-3xl font-bold mt-2'} onClick={() => {setSlugDialogOpen(true);}}>✨ the best temp file hosting on the internet ✨</h2>
-			</motion.div>
-			<motion.div
-				animate={{opacity: 1}}
-				initial={{opacity: 0}}
-				transition={{duration:0.5, delay: 0.7}}>
-				<FileUpload onUpload={onUpload} slug={slug}/>
-			</motion.div>
-			{/* @ts-expect-error this is fine */}
-			<SuccessDialog fullLink={fullLink} shortLink={shortLink} open={successDialogOpen} onOpenChange={setSuccessDialogOpen}/>
-			{/* @ts-expect-error this is fine */}
-			<SlugDialog open={slugDialogOpen} onOpenChange={setSlugDialogOpen} slugChange={slugChange}/>
+		<main className="flex min-h-screen flex-col items-center justify-center px-4">
+			<div className="flex flex-col items-center gap-3 mb-4">
+				<Title />
+				<p className="text-xs font-mono text-muted-foreground tracking-wide">
+					temporary file hosting / files expire in 24h
+				</p>
+			</div>
+
+			<FileUpload onUpload={onUpload} slug={slug} />
+
+			<div className="mt-3">
+				<Button
+					variant="ghost"
+					size="sm"
+					className="text-xs font-mono text-muted-foreground"
+					onClick={() => setSlugDialogOpen(true)}
+				>
+					<Link2 className="h-3 w-3" />
+					{slug ? `slug: ${slug}` : 'set custom slug'}
+				</Button>
+			</div>
+
+			<SuccessDialog
+				fullLink={fullLink}
+				shortLink={shortLink}
+				open={successDialogOpen}
+				onOpenChange={setSuccessDialogOpen}
+			/>
+			<SlugDialog
+				open={slugDialogOpen}
+				onOpenChange={setSlugDialogOpen}
+				slugChange={handleSlugChange}
+			/>
 		</main>
 	);
 }

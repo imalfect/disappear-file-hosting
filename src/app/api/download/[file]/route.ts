@@ -1,21 +1,27 @@
 import { type NextRequest } from 'next/server';
-import {isValidObjectId} from 'mongoose';
-import {getUploadedFileInfoById} from '@/db/functions/getUploadedFileInfo';
-import getFile from '@/s3/functions/getFile';
+import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
+import getPresignedUrl from '@/s3/functions/getPresignedUrl';
+
 export async function GET(request: NextRequest) {
-	// Get last URL segment
 	const id = request.nextUrl.pathname.split('/').pop();
-	if (!isValidObjectId(id)) {
+
+	if (!id) {
 		return new Response('Invalid ID', { status: 400 });
 	}
-	// Get the download info from the database
-	const fileInfo = await getUploadedFileInfoById(id!);
+
+	const fileInfo = await getUploadedFileInfoById(id);
 	if (!fileInfo) {
 		return new Response('File not found', { status: 404 });
 	}
-	const file = await getFile(fileInfo.fileKey);
-	// Return the download as a stream
-	// @ts-expect-error - It works fine
-	return new Response(file.Body, { headers: { 'Content-Type': fileInfo.mimeType, 'Content-Disposition': `attachment; filename=${fileInfo.originalName}`} });
-	// Return the download info as JSON
+
+	// Check expiration (24 hours)
+	const expiresAt = fileInfo.uploadedAt * 1000 + 24 * 60 * 60 * 1000;
+	if (Date.now() >= expiresAt) {
+		return new Response('File has expired', { status: 410 });
+	}
+
+	// Generate a 1-hour presigned URL and redirect directly to S3/R2
+	const presignedUrl = await getPresignedUrl(fileInfo.fileKey, fileInfo.originalName, 3600);
+
+	return Response.redirect(presignedUrl, 302);
 }
