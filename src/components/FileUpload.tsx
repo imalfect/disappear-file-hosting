@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, FileUp, Shield, Lock } from 'lucide-react';
+import { Upload, FileUp, Shield, Lock, Shuffle, ImageMinus } from 'lucide-react';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useRateLimiter } from '@tanstack/react-pacer/rate-limiter';
 import { encryptFile } from '@/lib/crypto';
+import { isStrippableImage, stripMetadata, randomizeFileName } from '@/lib/file-utils';
 import prettyBytes from 'pretty-bytes';
 
 const RATE_LIMIT = 5;
@@ -31,6 +32,8 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
 	const [password, setPassword] = useState('');
 	const [confirmPassword, setConfirmPassword] = useState('');
+	const [randomName, setRandomName] = useState(false);
+	const [stripMeta, setStripMeta] = useState(false);
 
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 	const turnstileRef = useRef<TurnstileInstance>(null);
@@ -44,18 +47,37 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		setSelectedFile(null);
 		setPassword('');
 		setConfirmPassword('');
+		setRandomName(false);
+		setStripMeta(false);
 		setTurnstileToken(null);
 	}, []);
 
 	const doUpload = useCallback(async (file: File, captchaToken?: string) => {
-		let fileToUpload: File | Blob = file;
+		let processedFile = file;
+
+		// Strip metadata from images
+		if (stripMeta && isStrippableImage(file)) {
+			setStage('encrypting'); // reuse the processing state
+			try {
+				processedFile = await stripMetadata(file);
+			} catch {
+				toast.error('failed to strip metadata');
+				reset();
+				return;
+			}
+		}
+
+		// Determine the upload filename
+		const uploadName = randomName ? randomizeFileName(file.name) : file.name;
+
+		let fileToUpload: File | Blob = processedFile;
 		let encryptionParams = '';
 
 		if (password) {
 			setStage('encrypting');
 			try {
-				const { encrypted, salt, iv } = await encryptFile(file, password);
-				fileToUpload = new File([encrypted], file.name, { type: 'application/octet-stream' });
+				const { encrypted, salt, iv } = await encryptFile(processedFile, password);
+				fileToUpload = new File([encrypted], uploadName, { type: 'application/octet-stream' });
 				encryptionParams = `&encrypted=1&salt=${salt}&iv=${iv}`;
 			} catch {
 				toast.error('encryption failed');
@@ -68,7 +90,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		setProgress(0);
 
 		const formData = new FormData();
-		formData.append('file', fileToUpload, file.name);
+		formData.append('file', fileToUpload, uploadName);
 
 		const xhr = new XMLHttpRequest();
 
@@ -106,7 +128,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 
 		xhr.open('POST', url);
 		xhr.send(formData);
-	}, [onUpload, slug, password, reset]);
+	}, [onUpload, slug, password, randomName, stripMeta, reset]);
 
 	const startUpload = useCallback((file: File) => {
 		if (file.size > CAPTCHA_THRESHOLD && siteKey) {
@@ -126,6 +148,8 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		setSelectedFile(file);
 		setPassword('');
 		setConfirmPassword('');
+		setRandomName(false);
+		setStripMeta(false);
 		setStage('confirm');
 	}, []);
 
@@ -176,7 +200,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 						</div>
 					</div>
 					<p className="text-xs font-mono text-muted-foreground">
-						encrypting...
+						processing...
 					</p>
 				</div>
 			</div>
@@ -264,6 +288,31 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 						<FileUp className="h-3 w-3 text-muted-foreground shrink-0" />
 						<p className="text-xs font-mono truncate">{selectedFile.name}</p>
 						<span className="text-xs font-mono text-muted-foreground ml-auto shrink-0">{prettyBytes(selectedFile.size)}</span>
+					</div>
+
+					<div className="space-y-2">
+						<label className="flex items-center gap-2 cursor-pointer group">
+							<input
+								type="checkbox"
+								checked={randomName}
+								onChange={(e) => setRandomName(e.target.checked)}
+								className="accent-foreground h-3 w-3"
+							/>
+							<Shuffle className="h-3 w-3 text-muted-foreground" />
+							<span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">randomize filename</span>
+						</label>
+						{isStrippableImage(selectedFile) && (
+							<label className="flex items-center gap-2 cursor-pointer group">
+								<input
+									type="checkbox"
+									checked={stripMeta}
+									onChange={(e) => setStripMeta(e.target.checked)}
+									className="accent-foreground h-3 w-3"
+								/>
+								<ImageMinus className="h-3 w-3 text-muted-foreground" />
+								<span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">strip metadata</span>
+							</label>
+						)}
 					</div>
 
 					<div className="space-y-2">
