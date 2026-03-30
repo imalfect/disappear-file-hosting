@@ -3,8 +3,10 @@ import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from 'sonner';
 
+const serviceName = process.env.NEXT_PUBLIC_SERVICE_NAME || 'Disappear';
+
 export const metadata: Metadata = {
-	title: 'Disappear',
+	title: serviceName,
 	description: 'Temporary file hosting — files vanish after 24 hours.',
 };
 
