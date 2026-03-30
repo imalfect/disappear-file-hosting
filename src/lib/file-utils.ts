@@ -4,8 +4,16 @@ const IMAGE_TYPES = new Set([
   'image/webp',
 ]);
 
+const IMAGE_EXTENSIONS = new Set([
+  '.jpg', '.jpeg', '.png', '.webp',
+]);
+
 export function isStrippableImage(file: File): boolean {
-  return IMAGE_TYPES.has(file.type);
+  if (IMAGE_TYPES.has(file.type)) return true;
+  const ext = file.name.includes('.')
+    ? file.name.slice(file.name.lastIndexOf('.')).toLowerCase()
+    : '';
+  return IMAGE_EXTENSIONS.has(ext);
 }
 
 export async function stripMetadata(file: File): Promise<File> {

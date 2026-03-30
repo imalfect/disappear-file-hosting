@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, FileUp, Shield, Lock, Shuffle, ImageMinus } from 'lucide-react';
+import { Upload, FileUp, Shield, Lock, Shuffle, ImageMinus, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -291,27 +291,29 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 					</div>
 
 					<div className="space-y-2">
-						<label className="flex items-center gap-2 cursor-pointer group">
-							<input
-								type="checkbox"
-								checked={randomName}
-								onChange={(e) => setRandomName(e.target.checked)}
-								className="accent-foreground h-3 w-3"
-							/>
+						<button
+							type="button"
+							className="flex items-center gap-2 cursor-pointer group w-full"
+							onClick={() => setRandomName(!randomName)}
+						>
+							<span className={`flex items-center justify-center h-3.5 w-3.5 border shrink-0 ${randomName ? 'bg-foreground border-foreground' : 'border-muted-foreground/50'}`}>
+								{randomName && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+							</span>
 							<Shuffle className="h-3 w-3 text-muted-foreground" />
 							<span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">randomize filename</span>
-						</label>
+						</button>
 						{isStrippableImage(selectedFile) && (
-							<label className="flex items-center gap-2 cursor-pointer group">
-								<input
-									type="checkbox"
-									checked={stripMeta}
-									onChange={(e) => setStripMeta(e.target.checked)}
-									className="accent-foreground h-3 w-3"
-								/>
+							<button
+								type="button"
+								className="flex items-center gap-2 cursor-pointer group w-full"
+								onClick={() => setStripMeta(!stripMeta)}
+							>
+								<span className={`flex items-center justify-center h-3.5 w-3.5 border shrink-0 ${stripMeta ? 'bg-foreground border-foreground' : 'border-muted-foreground/50'}`}>
+									{stripMeta && <Check className="h-2.5 w-2.5 text-background" strokeWidth={3} />}
+								</span>
 								<ImageMinus className="h-3 w-3 text-muted-foreground" />
 								<span className="text-xs font-mono text-muted-foreground group-hover:text-foreground transition-colors">strip metadata</span>
-							</label>
+							</button>
 						)}
 					</div>
 
