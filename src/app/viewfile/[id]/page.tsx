@@ -2,15 +2,15 @@ import { notFound } from 'next/navigation';
 import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
 import prettyBytes from 'pretty-bytes';
 import Title from '@/components/Title';
-import { Button } from '@/components/ui/button';
+import FileDownload from '@/components/FileDownload';
 import {
-	Download,
 	FileText,
 	FileVideo,
 	FileAudio,
 	Image,
 	AppWindow,
 	File,
+	Lock,
 } from 'lucide-react';
 
 function getIconForMime(mime: string) {
@@ -49,6 +49,7 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 	const expiryDate = new Date(fileInfo.uploadedAt * 1000 + 24 * 60 * 60 * 1000);
 	const remaining = timeRemaining(fileInfo.uploadedAt);
 	const isExpired = remaining === 'expired';
+	const isEncrypted = fileInfo.isEncrypted === 1;
 
 	return (
 		<main className="flex min-h-dvh flex-col items-center justify-center px-6 sm:px-8">
@@ -87,6 +88,15 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 							<span className="text-muted-foreground">id</span>
 							<span className="truncate ml-4 text-muted-foreground">{id}</span>
 						</div>
+						{isEncrypted && (
+							<div className="flex justify-between text-xs font-mono">
+								<span className="text-muted-foreground">encryption</span>
+								<span className="flex items-center gap-1">
+									<Lock className="h-3 w-3" />
+									encrypted
+								</span>
+							</div>
+						)}
 					</div>
 
 					{/* Expiry line */}
@@ -100,12 +110,14 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 					{/* Download */}
 					{!isExpired && (
 						<div className="p-4">
-							<Button className="w-full" asChild>
-								<a href={`/api/download/${id}`}>
-									<Download className="h-4 w-4" />
-									download
-								</a>
-							</Button>
+							<FileDownload
+								fileId={id}
+								fileName={fileInfo.originalName}
+								fileSize={fileInfo.size}
+								encrypted={isEncrypted}
+								salt={fileInfo.encryptionSalt ?? undefined}
+								iv={fileInfo.encryptionIv ?? undefined}
+							/>
 						</div>
 					)}
 				</div>
