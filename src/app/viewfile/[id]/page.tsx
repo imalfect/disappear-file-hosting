@@ -51,7 +51,7 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 	const isExpired = remaining === 'expired';
 
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-center px-4">
+		<main className="flex min-h-dvh flex-col items-center justify-center px-6 sm:px-8">
 			<div className="w-full max-w-sm space-y-6">
 				<div className="flex justify-center">
 					<Title />
