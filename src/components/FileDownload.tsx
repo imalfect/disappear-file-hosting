@@ -18,7 +18,7 @@ interface FileDownloadProps {
 	iv?: string;
 }
 
-type Stage = 'idle' | 'downloading' | 'decrypting' | 'done';
+type Stage = 'idle' | 'downloading' | 'decrypting' | 'done' | 'retry';
 
 function formatSpeed(bytesPerSec: number): string {
 	if (bytesPerSec === 0) return '0 B/s';
@@ -41,6 +41,7 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 	const [speed, setSpeed] = useState(0);
 	const [eta, setEta] = useState(0);
 	const blobUrlRef = useRef<string | null>(null);
+	const cachedDataRef = useRef<ArrayBuffer | null>(null);
 
 	const triggerSave = useCallback((blob: Blob) => {
 		const url = URL.createObjectURL(blob);
@@ -60,6 +61,83 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 		}, 60_000);
 	}, [fileName]);
 
+	const downloadData = useCallback(async (): Promise<ArrayBuffer | null> => {
+		if (cachedDataRef.current) return cachedDataRef.current;
+
+		const res = await fetch(`/api/download/${fileId}?raw=1`);
+		if (!res.ok) {
+			toast.error(res.status === 410 ? 'file has expired' : 'failed to get download link');
+			return null;
+		}
+		const { url } = await res.json();
+
+		setStage('downloading');
+		setProgress(0);
+		setDownloaded(0);
+		setSpeed(0);
+		setEta(0);
+
+		const data = await new Promise<ArrayBuffer>((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.responseType = 'arraybuffer';
+
+			let lastLoaded = 0;
+			let lastTime = Date.now();
+
+			xhr.addEventListener('progress', (e) => {
+				const now = Date.now();
+				const elapsed = (now - lastTime) / 1000;
+
+				if (e.lengthComputable) {
+					const pct = Math.round((e.loaded / e.total) * 100);
+					setProgress(pct);
+					setDownloaded(e.loaded);
+
+					if (elapsed > 0.3) {
+						const bytesPerSec = (e.loaded - lastLoaded) / elapsed;
+						setSpeed(bytesPerSec);
+						const remaining = e.total - e.loaded;
+						setEta(bytesPerSec > 0 ? remaining / bytesPerSec : 0);
+						lastLoaded = e.loaded;
+						lastTime = now;
+					}
+				} else if (e.loaded > 0) {
+					setDownloaded(e.loaded);
+					if (elapsed > 0.3) {
+						const bytesPerSec = (e.loaded - lastLoaded) / elapsed;
+						setSpeed(bytesPerSec);
+						if (fileSize > 0) {
+							const remaining = fileSize - e.loaded;
+							setProgress(Math.round((e.loaded / fileSize) * 100));
+							setEta(bytesPerSec > 0 ? remaining / bytesPerSec : 0);
+						}
+						lastLoaded = e.loaded;
+						lastTime = now;
+					}
+				}
+			});
+
+			xhr.addEventListener('load', () => {
+				if (xhr.status >= 200 && xhr.status < 300) {
+					setProgress(100);
+					setDownloaded(xhr.response.byteLength);
+					setSpeed(0);
+					resolve(xhr.response);
+				} else {
+					reject(new Error(`download failed (${xhr.status})`));
+				}
+			});
+
+			xhr.addEventListener('error', () => reject(new Error('network error')));
+
+			xhr.open('GET', url);
+			xhr.send();
+		});
+
+		cachedDataRef.current = data;
+		return data;
+	}, [fileId, fileSize]);
+
 	const handleDownload = useCallback(async () => {
 		if (encrypted && !password) {
 			toast.error('enter the file password');
@@ -67,79 +145,8 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 		}
 
 		try {
-			// Get presigned URL
-			const res = await fetch(`/api/download/${fileId}?raw=1`);
-			if (!res.ok) {
-				toast.error(res.status === 410 ? 'file has expired' : 'failed to get download link');
-				return;
-			}
-			const { url } = await res.json();
-
-			// Stream download with progress via XHR
-			setStage('downloading');
-			setProgress(0);
-			setDownloaded(0);
-			setSpeed(0);
-			setEta(0);
-
-			const data = await new Promise<ArrayBuffer>((resolve, reject) => {
-				const xhr = new XMLHttpRequest();
-				xhr.responseType = 'arraybuffer';
-
-				let startTime = Date.now();
-				let lastLoaded = 0;
-				let lastTime = startTime;
-
-				xhr.addEventListener('progress', (e) => {
-					const now = Date.now();
-					const elapsed = (now - lastTime) / 1000;
-
-					if (e.lengthComputable) {
-						const pct = Math.round((e.loaded / e.total) * 100);
-						setProgress(pct);
-						setDownloaded(e.loaded);
-
-						if (elapsed > 0.3) {
-							const bytesPerSec = (e.loaded - lastLoaded) / elapsed;
-							setSpeed(bytesPerSec);
-							const remaining = e.total - e.loaded;
-							setEta(bytesPerSec > 0 ? remaining / bytesPerSec : 0);
-							lastLoaded = e.loaded;
-							lastTime = now;
-						}
-					} else if (e.loaded > 0) {
-						// No Content-Length, show bytes downloaded
-						setDownloaded(e.loaded);
-						if (elapsed > 0.3) {
-							const bytesPerSec = (e.loaded - lastLoaded) / elapsed;
-							setSpeed(bytesPerSec);
-							if (fileSize > 0) {
-								const remaining = fileSize - e.loaded;
-								setProgress(Math.round((e.loaded / fileSize) * 100));
-								setEta(bytesPerSec > 0 ? remaining / bytesPerSec : 0);
-							}
-							lastLoaded = e.loaded;
-							lastTime = now;
-						}
-					}
-				});
-
-				xhr.addEventListener('load', () => {
-					if (xhr.status >= 200 && xhr.status < 300) {
-						setProgress(100);
-						setDownloaded(xhr.response.byteLength);
-						setSpeed(0);
-						resolve(xhr.response);
-					} else {
-						reject(new Error(`download failed (${xhr.status})`));
-					}
-				});
-
-				xhr.addEventListener('error', () => reject(new Error('network error')));
-
-				xhr.open('GET', url);
-				xhr.send();
-			});
+			const data = await downloadData();
+			if (!data) return;
 
 			// Decrypt if encrypted
 			let finalData: ArrayBuffer = data;
@@ -154,15 +161,16 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 			setStage('done');
 			toast.success(encrypted ? 'decrypted & saved' : 'download complete');
 		} catch (err) {
-			if (encrypted) {
-				toast.error('decryption failed — wrong password?');
+			if (encrypted && cachedDataRef.current) {
+				toast.error('wrong password — try again');
+				setStage('retry');
 			} else {
 				toast.error(err instanceof Error ? err.message : 'download failed');
+				setStage('idle');
+				setProgress(0);
 			}
-			setStage('idle');
-			setProgress(0);
 		}
-	}, [fileId, fileName, fileSize, encrypted, password, salt, iv, triggerSave]);
+	}, [downloadData, encrypted, password, salt, iv, triggerSave]);
 
 	const resetAndRedownload = useCallback(() => {
 		setStage('idle');
@@ -218,14 +226,16 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 		);
 	}
 
-	// Idle — show download button (with password input for encrypted)
+	// Idle or retry — show download/decrypt button
 	return (
 		<div className="space-y-3">
 			{encrypted && (
 				<>
 					<div className="flex items-center gap-2">
 						<Lock className="h-3 w-3 text-muted-foreground" />
-						<p className="text-xs font-mono text-muted-foreground">this file is encrypted</p>
+						<p className="text-xs font-mono text-muted-foreground">
+							{stage === 'retry' ? 'wrong password — try again' : 'this file is encrypted'}
+						</p>
 					</div>
 					<Input
 						type="password"
@@ -243,7 +253,7 @@ export default function FileDownload({ fileId, fileName, fileSize, encrypted, sa
 				disabled={encrypted && !password}
 			>
 				<Download className="h-4 w-4" />
-				{encrypted ? 'decrypt & download' : 'download'}
+				{stage === 'retry' ? 'retry decrypt' : encrypted ? 'decrypt & download' : 'download'}
 			</Button>
 		</div>
 	);
