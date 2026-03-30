@@ -57,12 +57,12 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 
 		// Strip metadata from images
 		if (stripMeta && isStrippableImage(file)) {
-			setStage('encrypting'); // reuse the processing state
+			setStage('encrypting');
 			try {
 				processedFile = await stripMetadata(file);
 			} catch {
-				toast.error('failed to strip metadata');
-				reset();
+				toast.error('failed to strip metadata — uncheck the option or try a different file');
+				setStage('confirm');
 				return;
 			}
 		}
@@ -80,8 +80,8 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 				fileToUpload = new File([encrypted], uploadName, { type: 'application/octet-stream' });
 				encryptionParams = `&encrypted=1&salt=${salt}&iv=${iv}`;
 			} catch {
-				toast.error('encryption failed');
-				reset();
+				toast.error('encryption failed — try again or remove the password');
+				setStage('confirm');
 				return;
 			}
 		}
