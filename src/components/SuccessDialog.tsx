@@ -50,9 +50,9 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 						file is live — expires in 24 hours
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-3">
-					<div className="flex items-center gap-2">
-						<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={fullLink}>
+				<div className="space-y-3 overflow-hidden">
+					<div className="flex items-center gap-2 min-w-0">
+						<div className="min-w-0 flex-1 overflow-hidden border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={fullLink}>
 							{displayUrl(fullLink)}
 						</div>
 						<Button
@@ -70,8 +70,8 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 						</Button>
 					</div>
 					{shortLink && (
-						<div className="flex items-center gap-2">
-							<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={shortLink}>
+						<div className="flex items-center gap-2 min-w-0">
+							<div className="min-w-0 flex-1 overflow-hidden border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={shortLink}>
 								{displayUrl(shortLink)}
 							</div>
 							<Button
