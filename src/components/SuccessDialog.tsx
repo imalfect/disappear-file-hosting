@@ -19,13 +19,9 @@ interface SuccessDialogProps {
 	shortLink?: string;
 }
 
-function truncateUrl(url: string, max: number = 40): string {
-	if (url.length <= max) return url;
+function displayUrl(url: string): string {
 	const proto = url.indexOf('://');
-	const start = proto > -1 ? proto + 3 : 0;
-	const path = url.slice(start);
-	if (path.length <= max) return path;
-	return path.slice(0, max - 3) + '...';
+	return proto > -1 ? url.slice(proto + 3) : url;
 }
 
 export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink }: SuccessDialogProps) {
@@ -57,7 +53,7 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 				<div className="space-y-3">
 					<div className="flex items-center gap-2">
 						<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={fullLink}>
-							{truncateUrl(fullLink)}
+							{displayUrl(fullLink)}
 						</div>
 						<Button
 							variant="outline"
@@ -76,7 +72,7 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 					{shortLink && (
 						<div className="flex items-center gap-2">
 							<div className="flex-1 min-w-0 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate" title={shortLink}>
-								{truncateUrl(shortLink)}
+								{displayUrl(shortLink)}
 							</div>
 							<Button
 								variant="outline"
