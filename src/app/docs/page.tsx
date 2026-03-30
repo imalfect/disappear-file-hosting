@@ -1,6 +1,16 @@
+'use client';
+
 import Title from '@/components/Title';
+import { useState, useEffect } from 'react';
+
+function useOrigin() {
+	const [origin, setOrigin] = useState('https://example.com');
+	useEffect(() => setOrigin(window.location.origin), []);
+	return origin;
+}
 
 export default function DocsPage() {
+	const origin = useOrigin();
 	return (
 		<main className="min-h-dvh px-6 sm:px-8 py-12">
 			<div className="mx-auto max-w-xl space-y-8">
@@ -85,7 +95,7 @@ export default function DocsPage() {
 						<pre className="text-xs font-mono text-muted-foreground bg-card border border-border p-3 overflow-x-auto">
 {`curl -X POST \\
   -F "file=@photo.jpg" \\
-  "https://dspr.lol/api/upload?slug=myphoto"`}
+  "${origin}/api/upload?slug=myphoto"`}
 						</pre>
 					</div>
 				</section>
@@ -135,10 +145,10 @@ export default function DocsPage() {
 						<pre className="text-xs font-mono text-muted-foreground bg-card border border-border p-3 overflow-x-auto">
 {`# direct download (follows redirect)
 curl -L -o file.jpg \\
-  "https://dspr.lol/api/download/UUID"
+  "${origin}/api/download/UUID"
 
 # get presigned url
-curl "https://dspr.lol/api/download/UUID?raw=1"`}
+curl "${origin}/api/download/UUID?raw=1"`}
 						</pre>
 					</div>
 				</section>
