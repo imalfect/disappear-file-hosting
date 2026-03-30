@@ -1,10 +1,19 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
-import { Upload, FileUp } from 'lucide-react';
+import { Upload, FileUp, Shield } from 'lucide-react';
 import { toast } from 'sonner';
 import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
+import { useRateLimiter } from '@tanstack/react-pacer/rate-limiter';
 import prettyBytes from 'pretty-bytes';
+
+const RATE_LIMIT = 5; // max uploads
+const RATE_WINDOW = 10 * 60 * 1000; // per 10 minutes
+
+const SIZE_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB
+const CAPTCHA_THRESHOLD = 100 * 1024 * 1024; // 100MB
 
 interface FileUploadProps {
 	onUpload: (uploadId: string) => void;
@@ -17,13 +26,22 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 	const [progress, setProgress] = useState(0);
 	const [fileName, setFileName] = useState('');
 	const [fileSize, setFileSize] = useState(0);
-	const inputRef = useRef<HTMLInputElement>(null);
 
-	const uploadFile = useCallback(async (file: File) => {
+	// Turnstile state for large files
+	const [pendingFile, setPendingFile] = useState<File | null>(null);
+	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+	const turnstileRef = useRef<TurnstileInstance>(null);
+
+	const inputRef = useRef<HTMLInputElement>(null);
+	const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
+	const doUpload = useCallback((file: File, captchaToken?: string) => {
 		setIsUploading(true);
 		setProgress(0);
 		setFileName(file.name);
 		setFileSize(file.size);
+		setPendingFile(null);
+		setTurnstileToken(null);
 
 		const formData = new FormData();
 		formData.append('file', file);
@@ -46,7 +64,9 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 				setFileName('');
 				onUpload(data.uploadedId);
 			} else {
-				toast.error(`Upload failed (${xhr.status})`);
+				let msg = `Upload failed (${xhr.status})`;
+				try { msg = JSON.parse(xhr.responseText).error || msg; } catch { /* ignore */ }
+				toast.error(msg);
 				setIsUploading(false);
 				setProgress(0);
 				setFileName('');
@@ -60,24 +80,59 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 			setFileName('');
 		});
 
-		const url = slug ? `/api/upload?slug=${encodeURIComponent(slug)}` : '/api/upload';
+		const params = new URLSearchParams();
+		if (slug) params.set('slug', slug);
+		if (captchaToken) params.set('captcha', captchaToken);
+		const qs = params.toString();
+		const url = `/api/upload${qs ? `?${qs}` : ''}`;
+
 		xhr.open('POST', url);
 		xhr.send(formData);
 	}, [onUpload, slug]);
+
+	const processFile = useCallback((file: File) => {
+		if (file.size > SIZE_LIMIT) {
+			toast.error(`File too large. Maximum size is ${prettyBytes(SIZE_LIMIT)}.`);
+			return;
+		}
+
+		// Large files need Turnstile verification
+		if (file.size > CAPTCHA_THRESHOLD && siteKey) {
+			setPendingFile(file);
+			setTurnstileToken(null);
+			turnstileRef.current?.reset();
+			return;
+		}
+
+		doUpload(file);
+	}, [doUpload, siteKey]);
+
+	const rateLimiter = useRateLimiter(processFile, {
+		limit: RATE_LIMIT,
+		window: RATE_WINDOW,
+		onReject: () => {
+			toast.error(`Rate limit reached. You can upload ${RATE_LIMIT} files every 10 minutes.`);
+		},
+	});
+
+	const handleFile = useCallback((file: File) => {
+		rateLimiter.maybeExecute(file);
+	}, [rateLimiter]);
 
 	const handleDrop = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
 		setIsDragging(false);
 		const file = e.dataTransfer.files[0];
-		if (file) uploadFile(file);
-	}, [uploadFile]);
+		if (file) handleFile(file);
+	}, [handleFile]);
 
 	const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
 		const file = e.target.files?.[0];
-		if (file) uploadFile(file);
+		if (file) handleFile(file);
 		if (inputRef.current) inputRef.current.value = '';
-	}, [uploadFile]);
+	}, [handleFile]);
 
+	// Uploading state
 	if (isUploading) {
 		return (
 			<div className="mt-8 w-full max-w-md">
@@ -99,6 +154,57 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		);
 	}
 
+	// Captcha challenge for large files
+	if (pendingFile && siteKey) {
+		return (
+			<div className="mt-8 w-full max-w-md">
+				<div className="rounded-lg border border-border bg-card p-6 space-y-4">
+					<div className="flex items-center gap-3">
+						<Shield className="h-5 w-5 text-muted-foreground" />
+						<div>
+							<p className="text-sm font-medium">Verification required</p>
+							<p className="text-xs text-muted-foreground">
+								Files over {prettyBytes(CAPTCHA_THRESHOLD)} require a quick check
+							</p>
+						</div>
+					</div>
+					<div className="flex items-center gap-3 p-3 rounded-md bg-muted/50">
+						<FileUp className="h-4 w-4 text-muted-foreground shrink-0" />
+						<p className="text-sm truncate">{pendingFile.name}</p>
+						<span className="text-xs text-muted-foreground ml-auto shrink-0">{prettyBytes(pendingFile.size)}</span>
+					</div>
+					<div className="flex justify-center">
+						<Turnstile
+							ref={turnstileRef}
+							siteKey={siteKey}
+							onSuccess={(token) => setTurnstileToken(token)}
+							onError={() => toast.error('Captcha failed. Please try again.')}
+							onExpire={() => setTurnstileToken(null)}
+							options={{ theme: 'dark' }}
+						/>
+					</div>
+					<div className="flex gap-2">
+						<Button
+							variant="outline"
+							className="flex-1"
+							onClick={() => { setPendingFile(null); setTurnstileToken(null); }}
+						>
+							Cancel
+						</Button>
+						<Button
+							className="flex-1"
+							disabled={!turnstileToken}
+							onClick={() => doUpload(pendingFile, turnstileToken!)}
+						>
+							Upload
+						</Button>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	// Default drop zone
 	return (
 		<div className="mt-8 w-full max-w-md">
 			<div
@@ -120,7 +226,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 				/>
 				<Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
 				<p className="text-sm font-medium">Drop a file here or click to browse</p>
-				<p className="text-xs text-muted-foreground mt-1">Files expire after 24 hours</p>
+				<p className="text-xs text-muted-foreground mt-1">Up to {prettyBytes(SIZE_LIMIT)} — expires after 24 hours</p>
 			</div>
 		</div>
 	);

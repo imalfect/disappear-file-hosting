@@ -1,7 +1,7 @@
 import { type NextRequest } from 'next/server';
 import { isValidObjectId } from 'mongoose';
 import { getUploadedFileInfoById } from '@/db/functions/getUploadedFileInfo';
-import getFile from '@/s3/functions/getFile';
+import getPresignedUrl from '@/s3/functions/getPresignedUrl';
 
 export async function GET(request: NextRequest) {
 	const id = request.nextUrl.pathname.split('/').pop();
@@ -15,12 +15,14 @@ export async function GET(request: NextRequest) {
 		return new Response('File not found', { status: 404 });
 	}
 
-	const file = await getFile(fileInfo.fileKey);
+	// Check expiration (24 hours)
+	const expiresAt = fileInfo.uploadedAt * 1000 + 24 * 60 * 60 * 1000;
+	if (Date.now() >= expiresAt) {
+		return new Response('File has expired', { status: 410 });
+	}
 
-	return new Response(file.Body as ReadableStream, {
-		headers: {
-			'Content-Type': fileInfo.mimeType,
-			'Content-Disposition': `attachment; filename="${fileInfo.originalName}"`,
-		},
-	});
+	// Generate a 1-hour presigned URL and redirect directly to S3/R2
+	const presignedUrl = await getPresignedUrl(fileInfo.fileKey, fileInfo.originalName, 3600);
+
+	return Response.redirect(presignedUrl, 302);
 }
