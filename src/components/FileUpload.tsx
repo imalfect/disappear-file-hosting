@@ -9,11 +9,11 @@ import { Turnstile, type TurnstileInstance } from '@marsidev/react-turnstile';
 import { useRateLimiter } from '@tanstack/react-pacer/rate-limiter';
 import prettyBytes from 'pretty-bytes';
 
-const RATE_LIMIT = 5; // max uploads
-const RATE_WINDOW = 10 * 60 * 1000; // per 10 minutes
+const RATE_LIMIT = 5;
+const RATE_WINDOW = 10 * 60 * 1000;
 
-const SIZE_LIMIT = 2 * 1024 * 1024 * 1024; // 2GB
-const CAPTCHA_THRESHOLD = 100 * 1024 * 1024; // 100MB
+const SIZE_LIMIT = 2 * 1024 * 1024 * 1024;
+const CAPTCHA_THRESHOLD = 100 * 1024 * 1024;
 
 interface FileUploadProps {
 	onUpload: (uploadId: string) => void;
@@ -27,7 +27,6 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 	const [fileName, setFileName] = useState('');
 	const [fileSize, setFileSize] = useState(0);
 
-	// Turnstile state for large files
 	const [pendingFile, setPendingFile] = useState<File | null>(null);
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 	const turnstileRef = useRef<TurnstileInstance>(null);
@@ -58,13 +57,13 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		xhr.addEventListener('load', () => {
 			if (xhr.status >= 200 && xhr.status < 300) {
 				const data = JSON.parse(xhr.responseText);
-				toast.success('File uploaded successfully!');
+				toast.success('upload complete');
 				setIsUploading(false);
 				setProgress(0);
 				setFileName('');
 				onUpload(data.uploadedId);
 			} else {
-				let msg = `Upload failed (${xhr.status})`;
+				let msg = `upload failed (${xhr.status})`;
 				try { msg = JSON.parse(xhr.responseText).error || msg; } catch { /* ignore */ }
 				toast.error(msg);
 				setIsUploading(false);
@@ -74,7 +73,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		});
 
 		xhr.addEventListener('error', () => {
-			toast.error('Upload failed — network error');
+			toast.error('upload failed — network error');
 			setIsUploading(false);
 			setProgress(0);
 			setFileName('');
@@ -92,11 +91,10 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 
 	const processFile = useCallback((file: File) => {
 		if (file.size > SIZE_LIMIT) {
-			toast.error(`File too large. Maximum size is ${prettyBytes(SIZE_LIMIT)}.`);
+			toast.error(`file too large — max ${prettyBytes(SIZE_LIMIT)}`);
 			return;
 		}
 
-		// Large files need Turnstile verification
 		if (file.size > CAPTCHA_THRESHOLD && siteKey) {
 			setPendingFile(file);
 			setTurnstileToken(null);
@@ -111,7 +109,7 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 		limit: RATE_LIMIT,
 		window: RATE_WINDOW,
 		onReject: () => {
-			toast.error(`Rate limit reached. You can upload ${RATE_LIMIT} files every 10 minutes.`);
+			toast.error(`rate limit — max ${RATE_LIMIT} uploads per 10min`);
 		},
 	});
 
@@ -135,50 +133,50 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 	// Uploading state
 	if (isUploading) {
 		return (
-			<div className="mt-8 w-full max-w-md">
-				<div className="rounded-lg border border-border bg-card p-6">
-					<div className="flex items-center gap-3 mb-4">
-						<FileUp className="h-5 w-5 text-muted-foreground animate-pulse" />
+			<div className="mt-6 w-full max-w-sm">
+				<div className="border border-border p-5">
+					<div className="flex items-center gap-3 mb-3">
+						<FileUp className="h-4 w-4 text-muted-foreground animate-pulse" />
 						<div className="min-w-0 flex-1">
-							<p className="text-sm font-medium truncate">{fileName}</p>
-							<p className="text-xs text-muted-foreground">{prettyBytes(fileSize)}</p>
+							<p className="text-xs font-mono truncate">{fileName}</p>
+							<p className="text-xs font-mono text-muted-foreground">{prettyBytes(fileSize)}</p>
 						</div>
-						<span className="text-sm font-mono text-muted-foreground">{progress}%</span>
+						<span className="text-xs font-mono text-muted-foreground tabular-nums">{progress}%</span>
 					</div>
-					<Progress value={progress} className="h-1.5" />
-					<p className="text-xs text-muted-foreground mt-2">
-						{progress < 100 ? 'Uploading...' : 'Processing...'}
+					<Progress value={progress} />
+					<p className="text-xs font-mono text-muted-foreground mt-2">
+						{progress < 100 ? 'uploading...' : 'processing...'}
 					</p>
 				</div>
 			</div>
 		);
 	}
 
-	// Captcha challenge for large files
+	// Captcha challenge
 	if (pendingFile && siteKey) {
 		return (
-			<div className="mt-8 w-full max-w-md">
-				<div className="rounded-lg border border-border bg-card p-6 space-y-4">
+			<div className="mt-6 w-full max-w-sm">
+				<div className="border border-border p-5 space-y-4">
 					<div className="flex items-center gap-3">
-						<Shield className="h-5 w-5 text-muted-foreground" />
+						<Shield className="h-4 w-4 text-muted-foreground" />
 						<div>
-							<p className="text-sm font-medium">Verification required</p>
-							<p className="text-xs text-muted-foreground">
-								Files over {prettyBytes(CAPTCHA_THRESHOLD)} require a quick check
+							<p className="text-xs font-mono font-medium">verification required</p>
+							<p className="text-xs font-mono text-muted-foreground">
+								files over {prettyBytes(CAPTCHA_THRESHOLD)} need verification
 							</p>
 						</div>
 					</div>
-					<div className="flex items-center gap-3 p-3 rounded-md bg-muted/50">
-						<FileUp className="h-4 w-4 text-muted-foreground shrink-0" />
-						<p className="text-sm truncate">{pendingFile.name}</p>
-						<span className="text-xs text-muted-foreground ml-auto shrink-0">{prettyBytes(pendingFile.size)}</span>
+					<div className="flex items-center gap-3 border border-border p-3">
+						<FileUp className="h-3 w-3 text-muted-foreground shrink-0" />
+						<p className="text-xs font-mono truncate">{pendingFile.name}</p>
+						<span className="text-xs font-mono text-muted-foreground ml-auto shrink-0">{prettyBytes(pendingFile.size)}</span>
 					</div>
 					<div className="flex justify-center">
 						<Turnstile
 							ref={turnstileRef}
 							siteKey={siteKey}
 							onSuccess={(token) => setTurnstileToken(token)}
-							onError={() => toast.error('Captcha failed. Please try again.')}
+							onError={() => toast.error('captcha failed')}
 							onExpire={() => setTurnstileToken(null)}
 							options={{ theme: 'dark' }}
 						/>
@@ -189,14 +187,14 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 							className="flex-1"
 							onClick={() => { setPendingFile(null); setTurnstileToken(null); }}
 						>
-							Cancel
+							cancel
 						</Button>
 						<Button
 							className="flex-1"
 							disabled={!turnstileToken}
 							onClick={() => doUpload(pendingFile, turnstileToken!)}
 						>
-							Upload
+							upload
 						</Button>
 					</div>
 				</div>
@@ -206,12 +204,12 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 
 	// Default drop zone
 	return (
-		<div className="mt-8 w-full max-w-md">
+		<div className="mt-6 w-full max-w-sm">
 			<div
-				className={`relative rounded-lg border-2 border-dashed transition-colors cursor-pointer p-10 text-center ${
+				className={`border border-dashed transition-colors cursor-pointer p-8 text-center ${
 					isDragging
-						? 'border-foreground/50 bg-accent'
-						: 'border-border hover:border-foreground/25 hover:bg-accent/50'
+						? 'border-foreground/40 bg-accent'
+						: 'border-border hover:border-foreground/20'
 				}`}
 				onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
 				onDragLeave={() => setIsDragging(false)}
@@ -224,9 +222,11 @@ export default function FileUpload({ onUpload, slug }: FileUploadProps) {
 					className="hidden"
 					onChange={handleFileSelect}
 				/>
-				<Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
-				<p className="text-sm font-medium">Drop a file here or click to browse</p>
-				<p className="text-xs text-muted-foreground mt-1">Up to {prettyBytes(SIZE_LIMIT)} — expires after 24 hours</p>
+				<Upload className="h-5 w-5 mx-auto mb-3 text-muted-foreground" />
+				<p className="text-xs font-mono">drop file or click to browse</p>
+				<p className="text-xs font-mono text-muted-foreground mt-1">
+					max {prettyBytes(SIZE_LIMIT)} / expires 24h
+				</p>
 			</div>
 		</div>
 	);

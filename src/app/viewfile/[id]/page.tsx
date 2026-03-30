@@ -12,15 +12,11 @@ import {
 	Image,
 	AppWindow,
 	File,
-	Clock,
-	HardDrive,
-	Tag,
-	Timer,
 } from 'lucide-react';
 
 function getIconForMime(mime: string) {
 	const main = mime.split('/')[0];
-	const cls = 'h-6 w-6 text-muted-foreground';
+	const cls = 'h-4 w-4 text-muted-foreground';
 	switch (main) {
 	case 'image': return <Image className={cls} />;
 	case 'video': return <FileVideo className={cls} />;
@@ -34,12 +30,12 @@ function getIconForMime(mime: string) {
 function timeRemaining(uploadedAt: number): string {
 	const expiresAt = uploadedAt * 1000 + 24 * 60 * 60 * 1000;
 	const now = Date.now();
-	if (now >= expiresAt) return 'Expired';
+	if (now >= expiresAt) return 'expired';
 	const diff = expiresAt - now;
 	const hours = Math.floor(diff / (1000 * 60 * 60));
 	const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-	if (hours > 0) return `${hours}h ${minutes}m remaining`;
-	return `${minutes}m remaining`;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	return `${minutes}m`;
 }
 
 export default async function ViewFilePage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,59 +53,64 @@ export default async function ViewFilePage({ params }: { params: Promise<{ id: s
 	const uploadDate = new Date(fileInfo.uploadedAt * 1000);
 	const expiryDate = new Date(fileInfo.uploadedAt * 1000 + 24 * 60 * 60 * 1000);
 	const remaining = timeRemaining(fileInfo.uploadedAt);
-	const isExpired = remaining === 'Expired';
+	const isExpired = remaining === 'expired';
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-center px-4">
-			<div className="w-full max-w-md space-y-6">
+			<div className="w-full max-w-sm space-y-6">
 				<div className="flex justify-center">
 					<Title />
 				</div>
 
-				<div className="rounded-lg border bg-card p-6 space-y-4">
-					<div className="flex items-center gap-3">
+				<div className="border border-border divide-y divide-border">
+					{/* File header */}
+					<div className="flex items-center gap-3 p-4">
 						{getIconForMime(fileInfo.mimeType)}
 						<div className="min-w-0 flex-1">
-							<h2 className="text-lg font-semibold truncate">{fileInfo.originalName}</h2>
-							<p className="text-xs text-muted-foreground">{fileInfo.mimeType}</p>
+							<h2 className="text-sm font-mono font-medium truncate">{fileInfo.originalName}</h2>
+							<p className="text-xs font-mono text-muted-foreground">{fileInfo.mimeType}</p>
 						</div>
 					</div>
 
-					<div className="grid grid-cols-2 gap-3 text-sm">
-						<div className="flex items-center gap-2 text-muted-foreground">
-							<HardDrive className="h-4 w-4 shrink-0" />
+					{/* File details */}
+					<div className="p-4 space-y-2">
+						<div className="flex justify-between text-xs font-mono">
+							<span className="text-muted-foreground">size</span>
 							<span>{prettyBytes(fileInfo.size)}</span>
 						</div>
-						<div className="flex items-center gap-2 text-muted-foreground">
-							<Tag className="h-4 w-4 shrink-0" />
-							<span className="truncate font-mono text-xs">{id}</span>
+						<div className="flex justify-between text-xs font-mono">
+							<span className="text-muted-foreground">uploaded</span>
+							<span>{uploadDate.toLocaleDateString()} {uploadDate.toLocaleTimeString()}</span>
 						</div>
-						<div className="flex items-center gap-2 text-muted-foreground">
-							<Clock className="h-4 w-4 shrink-0" />
-							<span>{uploadDate.toLocaleDateString()}, {uploadDate.toLocaleTimeString()}</span>
+						<div className="flex justify-between text-xs font-mono">
+							<span className="text-muted-foreground">expires</span>
+							<span className={isExpired ? 'text-destructive' : ''}>
+								{isExpired ? 'expired' : `${remaining} remaining`}
+							</span>
 						</div>
-						<div className="flex items-center gap-2 text-muted-foreground">
-							<Timer className="h-4 w-4 shrink-0" />
-							<span className={isExpired ? 'text-destructive' : ''}>{remaining}</span>
+						<div className="flex justify-between text-xs font-mono">
+							<span className="text-muted-foreground">id</span>
+							<span className="truncate ml-4 text-muted-foreground">{id}</span>
 						</div>
 					</div>
 
-					<div className="pt-2 text-xs text-muted-foreground text-center">
-						Expires {expiryDate.toLocaleDateString()} at {expiryDate.toLocaleTimeString()}
+					{/* Expiry line */}
+					<div className="px-4 py-2 text-xs font-mono text-muted-foreground">
+						{isExpired
+							? 'this file has expired and is no longer available'
+							: `expires ${expiryDate.toLocaleDateString()} at ${expiryDate.toLocaleTimeString()}`
+						}
 					</div>
 
+					{/* Download */}
 					{!isExpired && (
-						<Button className="w-full" asChild>
-							<a href={`/api/download/${id}`}>
-								<Download className="h-4 w-4 mr-2" />
-								Download
-							</a>
-						</Button>
-					)}
-
-					{isExpired && (
-						<div className="text-center text-sm text-destructive font-medium">
-							This file has expired and is no longer available.
+						<div className="p-4">
+							<Button className="w-full" asChild>
+								<a href={`/api/download/${id}`}>
+									<Download className="h-4 w-4" />
+									download
+								</a>
+							</Button>
 						</div>
 					)}
 				</div>

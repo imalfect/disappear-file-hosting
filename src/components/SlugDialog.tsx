@@ -26,7 +26,7 @@ export default function SlugDialog({ open, onOpenChange, slugChange }: SlugDialo
 	const handleSubmit = async () => {
 		const trimmed = slug.trim();
 		if (!/^[A-Za-z0-9]+$/.test(trimmed)) {
-			toast.error('Slug can only contain letters and numbers');
+			toast.error('alphanumeric only');
 			return;
 		}
 		setChecking(true);
@@ -34,12 +34,12 @@ export default function SlugDialog({ open, onOpenChange, slugChange }: SlugDialo
 			const res = await fetch(`/api/slug-check?slug=${encodeURIComponent(trimmed)}`);
 			const data = await res.json();
 			if (!data.available) {
-				toast.error('That slug is already taken');
+				toast.error('slug taken');
 				return;
 			}
 			slugChange(trimmed);
 		} catch {
-			toast.error('Failed to check slug availability');
+			toast.error('check failed');
 		} finally {
 			setChecking(false);
 		}
@@ -49,9 +49,9 @@ export default function SlugDialog({ open, onOpenChange, slugChange }: SlugDialo
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>Custom slug</DialogTitle>
+					<DialogTitle>custom slug</DialogTitle>
 					<DialogDescription>
-						Set a short, memorable slug for your upload link.
+						set a short slug for a memorable link
 					</DialogDescription>
 				</DialogHeader>
 				<Input
@@ -62,7 +62,7 @@ export default function SlugDialog({ open, onOpenChange, slugChange }: SlugDialo
 				/>
 				<DialogFooter>
 					<Button onClick={handleSubmit} disabled={checking || !slug.trim()}>
-						{checking ? 'Checking...' : 'Set slug'}
+						{checking ? 'checking...' : 'set slug'}
 					</Button>
 				</DialogFooter>
 			</DialogContent>

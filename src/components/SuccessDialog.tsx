@@ -37,14 +37,14 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Upload complete</DialogTitle>
+					<DialogTitle>upload complete</DialogTitle>
 					<DialogDescription>
-						Your file is live and will expire in 24 hours.
+						file is live — expires in 24 hours
 					</DialogDescription>
 				</DialogHeader>
-				<div className="space-y-3">
+				<div className="space-y-2">
 					<div className="flex items-center gap-2">
-						<div className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm font-mono truncate">
+						<div className="flex-1 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate">
 							{fullLink}
 						</div>
 						<Button
@@ -52,17 +52,17 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 							size="icon"
 							onClick={() => copyToClipboard(fullLink, 'full')}
 						>
-							{copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+							{copiedFull ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
 						</Button>
 						<Button variant="outline" size="icon" asChild>
 							<a href={fullLink} target="_blank" rel="noreferrer">
-								<ExternalLink className="h-4 w-4" />
+								<ExternalLink className="h-3.5 w-3.5" />
 							</a>
 						</Button>
 					</div>
 					{shortLink && (
 						<div className="flex items-center gap-2">
-							<div className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm font-mono truncate">
+							<div className="flex-1 border border-border bg-muted/30 px-3 py-2 text-xs font-mono truncate">
 								{shortLink}
 							</div>
 							<Button
@@ -70,11 +70,11 @@ export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink 
 								size="icon"
 								onClick={() => copyToClipboard(shortLink, 'short')}
 							>
-								{copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+								{copiedShort ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
 							</Button>
 							<Button variant="outline" size="icon" asChild>
 								<a href={shortLink} target="_blank" rel="noreferrer">
-									<ExternalLink className="h-4 w-4" />
+									<ExternalLink className="h-3.5 w-3.5" />
 								</a>
 							</Button>
 						</div>

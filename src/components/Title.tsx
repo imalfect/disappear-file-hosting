@@ -1,11 +1,13 @@
 import Link from 'next/link';
-import { Ghost } from 'lucide-react';
 
 export default function Title() {
 	return (
-		<Link href="/" className="flex items-center gap-2 group">
-			<Ghost className="h-8 w-8 text-foreground transition-transform group-hover:scale-110" />
-			<h1 className="text-3xl font-bold tracking-tight">disappear</h1>
+		<Link href="/" className="group">
+			<h1 className="text-2xl font-mono font-bold tracking-tight uppercase">
+				<span className="text-muted-foreground mr-1">&gt;</span>
+				disappear
+				<span className="inline-block w-2 h-5 bg-foreground ml-1 align-middle animate-pulse" />
+			</h1>
 		</Link>
 	);
 }

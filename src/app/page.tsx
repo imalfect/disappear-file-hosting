@@ -28,31 +28,31 @@ export default function Home() {
 	};
 
 	const handleSlugChange = (newSlug: string) => {
-		toast.success(`Slug set to "${newSlug}"`);
+		toast.success(`slug set: ${newSlug}`);
 		setSlug(newSlug);
 		setSlugDialogOpen(false);
 	};
 
 	return (
 		<main className="flex min-h-screen flex-col items-center justify-center px-4">
-			<div className="flex flex-col items-center gap-2 mb-2">
+			<div className="flex flex-col items-center gap-3 mb-4">
 				<Title />
-				<p className="text-sm text-muted-foreground">
-					Temporary file hosting — files vanish after 24 hours
+				<p className="text-xs font-mono text-muted-foreground tracking-wide">
+					temporary file hosting / files expire in 24h
 				</p>
 			</div>
 
 			<FileUpload onUpload={onUpload} slug={slug} />
 
-			<div className="mt-4">
+			<div className="mt-3">
 				<Button
 					variant="ghost"
 					size="sm"
-					className="text-xs text-muted-foreground"
+					className="text-xs font-mono text-muted-foreground"
 					onClick={() => setSlugDialogOpen(true)}
 				>
-					<Link2 className="h-3 w-3 mr-1" />
-					{slug ? `Slug: ${slug}` : 'Set custom slug'}
+					<Link2 className="h-3 w-3" />
+					{slug ? `slug: ${slug}` : 'set custom slug'}
 				</Button>
 			</div>
 

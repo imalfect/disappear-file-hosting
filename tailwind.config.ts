@@ -14,6 +14,10 @@ const config: Config = {
 			},
 		},
 		extend: {
+			fontFamily: {
+				sans: ['"Geist"', '"Inter"', '"Fig Tree"', 'system-ui', '-apple-system', 'sans-serif'],
+				mono: ['"JetBrains Mono"', '"Geist Mono"', '"Fira Code"', '"SF Mono"', 'ui-monospace', 'monospace'],
+			},
 			colors: {
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
@@ -51,8 +55,8 @@ const config: Config = {
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
-				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)',
+				md: 'var(--radius)',
+				sm: 'var(--radius)',
 			},
 			keyframes: {
 				'accordion-down': {

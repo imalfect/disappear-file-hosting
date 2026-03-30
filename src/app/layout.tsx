@@ -26,10 +26,12 @@ export default function RootLayout({
 						theme="dark"
 						position="bottom-center"
 						toastOptions={{
+							className: 'font-mono text-xs',
 							style: {
 								background: 'hsl(0 0% 5%)',
-								border: '1px solid hsl(0 0% 12%)',
-								color: 'hsl(0 0% 95%)',
+								border: '1px solid hsl(0 0% 14%)',
+								color: 'hsl(0 0% 93%)',
+								borderRadius: '0px',
 							},
 						}}
 					/>
