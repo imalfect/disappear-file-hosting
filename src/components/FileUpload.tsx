@@ -1,56 +1,127 @@
-import Upload from 'rc-upload';
-import {Mouse, MousePointerSquareDashed} from 'lucide-react';
-import toast from 'react-hot-toast';
-interface ICustomRequestParams {
-	file: File;
-}
-interface IUploadJSON extends Response {
-	uploadedId: string;
-}
-export default function FileUpload(props: {
+'use client';
+
+import { useCallback, useRef, useState } from 'react';
+import { Upload, FileUp } from 'lucide-react';
+import { toast } from 'sonner';
+import { Progress } from '@/components/ui/progress';
+import prettyBytes from 'pretty-bytes';
+
+interface FileUploadProps {
 	onUpload: (uploadId: string) => void;
 	slug?: string;
-}) {
-	const customRequest = async ({ file }: ICustomRequestParams)  => {
+}
+
+export default function FileUpload({ onUpload, slug }: FileUploadProps) {
+	const [isDragging, setIsDragging] = useState(false);
+	const [isUploading, setIsUploading] = useState(false);
+	const [progress, setProgress] = useState(0);
+	const [fileName, setFileName] = useState('');
+	const [fileSize, setFileSize] = useState(0);
+	const inputRef = useRef<HTMLInputElement>(null);
+
+	const uploadFile = useCallback(async (file: File) => {
+		setIsUploading(true);
+		setProgress(0);
+		setFileName(file.name);
+		setFileSize(file.size);
+
 		const formData = new FormData();
 		formData.append('file', file);
-		const uploadToast = toast.loading('Uploading the file...');
-		const uploadedRequest = await fetch(`/api/upload?slug=${props.slug}`, {
-			method: 'POST',
-			body: formData
+
+		const xhr = new XMLHttpRequest();
+
+		xhr.upload.addEventListener('progress', (e) => {
+			if (e.lengthComputable) {
+				const pct = Math.round((e.loaded / e.total) * 100);
+				setProgress(pct);
+			}
 		});
-		if (!uploadedRequest.ok) {
-			toast.error(`Failed to upload file! Code: ${uploadedRequest.status}`, {
-				id: uploadToast
-			});
-			return;
-		}
-		const uploadedJSON: IUploadJSON = await uploadedRequest.json();
-		toast.success('File uploaded successfully!', {
-			id: uploadToast
+
+		xhr.addEventListener('load', () => {
+			if (xhr.status >= 200 && xhr.status < 300) {
+				const data = JSON.parse(xhr.responseText);
+				toast.success('File uploaded successfully!');
+				setIsUploading(false);
+				setProgress(0);
+				setFileName('');
+				onUpload(data.uploadedId);
+			} else {
+				toast.error(`Upload failed (${xhr.status})`);
+				setIsUploading(false);
+				setProgress(0);
+				setFileName('');
+			}
 		});
-		props.onUpload(uploadedJSON.uploadedId);
-	};
-	const readerProps = {
-		type: 'drag',
-		style: { display: 'inline-block', width: 400, height: 150 },
-		className: 'border-2 border-dashed border-purple-800 rounded-lg mt-6',
-		customRequest: customRequest,
-	};
-	return (
-		<div>
-			{/* @ts-expect-error different type of*/}
-			<Upload {...readerProps}>
-				<div className={'flex flex-col h-full items-center justify-center'}>
-					<div className={'flex items-center gap-2'}>
-						<MousePointerSquareDashed /><p className={'text-2xl font-bold'}>Drag and drop your files here</p>
+
+		xhr.addEventListener('error', () => {
+			toast.error('Upload failed — network error');
+			setIsUploading(false);
+			setProgress(0);
+			setFileName('');
+		});
+
+		const url = slug ? `/api/upload?slug=${encodeURIComponent(slug)}` : '/api/upload';
+		xhr.open('POST', url);
+		xhr.send(formData);
+	}, [onUpload, slug]);
+
+	const handleDrop = useCallback((e: React.DragEvent) => {
+		e.preventDefault();
+		setIsDragging(false);
+		const file = e.dataTransfer.files[0];
+		if (file) uploadFile(file);
+	}, [uploadFile]);
+
+	const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (file) uploadFile(file);
+		if (inputRef.current) inputRef.current.value = '';
+	}, [uploadFile]);
+
+	if (isUploading) {
+		return (
+			<div className="mt-8 w-full max-w-md">
+				<div className="rounded-lg border border-border bg-card p-6">
+					<div className="flex items-center gap-3 mb-4">
+						<FileUp className="h-5 w-5 text-muted-foreground animate-pulse" />
+						<div className="min-w-0 flex-1">
+							<p className="text-sm font-medium truncate">{fileName}</p>
+							<p className="text-xs text-muted-foreground">{prettyBytes(fileSize)}</p>
+						</div>
+						<span className="text-sm font-mono text-muted-foreground">{progress}%</span>
 					</div>
-					<p className={'text-xl'}>or</p>
-					<div className={'flex items-center gap-2'}>
-						<Mouse /><p className={'text-xl font-bold'}>Click here to select your file</p>
-					</div>
+					<Progress value={progress} className="h-1.5" />
+					<p className="text-xs text-muted-foreground mt-2">
+						{progress < 100 ? 'Uploading...' : 'Processing...'}
+					</p>
 				</div>
-			</Upload>
+			</div>
+		);
+	}
+
+	return (
+		<div className="mt-8 w-full max-w-md">
+			<div
+				className={`relative rounded-lg border-2 border-dashed transition-colors cursor-pointer p-10 text-center ${
+					isDragging
+						? 'border-foreground/50 bg-accent'
+						: 'border-border hover:border-foreground/25 hover:bg-accent/50'
+				}`}
+				onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+				onDragLeave={() => setIsDragging(false)}
+				onDrop={handleDrop}
+				onClick={() => inputRef.current?.click()}
+			>
+				<input
+					ref={inputRef}
+					type="file"
+					className="hidden"
+					onChange={handleFileSelect}
+				/>
+				<Upload className="h-8 w-8 mx-auto mb-3 text-muted-foreground" />
+				<p className="text-sm font-medium">Drop a file here or click to browse</p>
+				<p className="text-xs text-muted-foreground mt-1">Files expire after 24 hours</p>
+			</div>
 		</div>
 	);
 }

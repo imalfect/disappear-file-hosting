@@ -1,39 +1,36 @@
 import type { Metadata } from 'next';
-import {Nunito} from 'next/font/google';
 import './globals.css';
-import {ThemeProvider} from '@/components/theme-provider';
-import {Toaster} from 'react-hot-toast';
-
-const nunito = Nunito({ subsets: ['latin'] });
+import { ThemeProvider } from '@/components/theme-provider';
+import { Toaster } from 'sonner';
 
 export const metadata: Metadata = {
 	title: 'Disappear',
-	description: 'Disappear is a temporary file hosting.',
+	description: 'Temporary file hosting — files vanish after 24 hours.',
 };
 
 export default function RootLayout({
 	children,
 }: {
-  children: React.ReactNode
+	children: React.ReactNode;
 }) {
 	return (
-		<html lang="en">
-			<body className={nunito.className}>
+		<html lang="en" suppressHydrationWarning>
+			<body className="font-sans">
 				<ThemeProvider
 					attribute="class"
-					defaultTheme="system"
-					themes={['light', 'dark', 'system']}>
+					defaultTheme="dark"
+					disableTransitionOnChange
+				>
 					{children}
 					<Toaster
-						position={'bottom-center'}
+						theme="dark"
+						position="bottom-center"
 						toastOptions={{
-							className: 'border-2 border-purple-800',
 							style: {
-								backgroundColor: '#020817',
-								color: '#fff',
-								fontWeight: 'bold',
-								borderRadius: 30
-							}
+								background: 'hsl(0 0% 5%)',
+								border: '1px solid hsl(0 0% 12%)',
+								color: 'hsl(0 0% 95%)',
+							},
 						}}
 					/>
 				</ThemeProvider>

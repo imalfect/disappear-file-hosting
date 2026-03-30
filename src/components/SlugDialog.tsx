@@ -1,4 +1,5 @@
 'use client';
+
 import { Button } from '@/components/ui/button';
 import {
 	Dialog,
@@ -8,57 +9,61 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import slugAvailable from '@/db/functions/slugAvailable';
-import toast from 'react-hot-toast';
-export default function SlugDialog(props: {
-	// eslint-disable-next-line react/require-default-props
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+interface SlugDialogProps {
 	open: boolean;
-	onOpenChange: () => void;
+	onOpenChange: (open: boolean) => void;
 	slugChange: (slug: string) => void;
-}) {
+}
+
+export default function SlugDialog({ open, onOpenChange, slugChange }: SlugDialogProps) {
 	const [slug, setSlug] = useState('');
+	const [checking, setChecking] = useState(false);
+
+	const handleSubmit = async () => {
+		const trimmed = slug.trim();
+		if (!/^[A-Za-z0-9]+$/.test(trimmed)) {
+			toast.error('Slug can only contain letters and numbers');
+			return;
+		}
+		setChecking(true);
+		try {
+			const res = await fetch(`/api/slug-check?slug=${encodeURIComponent(trimmed)}`);
+			const data = await res.json();
+			if (!data.available) {
+				toast.error('That slug is already taken');
+				return;
+			}
+			slugChange(trimmed);
+		} catch {
+			toast.error('Failed to check slug availability');
+		} finally {
+			setChecking(false);
+		}
+	};
+
 	return (
-		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="sm:max-w-[425px] ">
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-sm">
 				<DialogHeader>
-					<DialogTitle>Set upload slug</DialogTitle>
+					<DialogTitle>Custom slug</DialogTitle>
 					<DialogDescription>
-						Use the text field below to set a custom slug for your upload. This will make your temp upload link shorter and easier to remember.
+						Set a short, memorable slug for your upload link.
 					</DialogDescription>
 				</DialogHeader>
-				<div>
-					<Input
-						id="slug"
-						name="slug"
-						type="text"
-						placeholder="Slug"
-						className="border-2 border-dashed border-purple-800 rounded-lg"
-						onChange={(e) => setSlug(e.target.value)}
-					/>
-				</div>
+				<Input
+					placeholder="my-file"
+					value={slug}
+					onChange={(e) => setSlug(e.target.value)}
+					onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
+				/>
 				<DialogFooter>
-					<div className={'flex flex-col text-center'}>
-						<span id="rewardId"></span>
-						<Button
-							type="submit"
-							onClick={async () => {
-								const regex = /^[A-Za-z0-9]+$/;
-								if (!regex.test(slug)) {
-									toast.error('Slug cannot contain special characters!');
-									return;
-								}
-								const isSlugAvailable = await slugAvailable(slug);
-								if (!isSlugAvailable) {
-									toast.error('Slug is not available!');
-									return;
-								}
-								props.slugChange(slug);
-							}}>
-							Set slug
-						</Button>
-					</div>
+					<Button onClick={handleSubmit} disabled={checking || !slug.trim()}>
+						{checking ? 'Checking...' : 'Set slug'}
+					</Button>
 				</DialogFooter>
 			</DialogContent>
 		</Dialog>

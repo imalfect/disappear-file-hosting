@@ -1,17 +1,17 @@
-'use server';
-// Importing the model type only, not the model instance
-import { Document } from 'mongoose';
-import {IUploadedFile,UploadedFile} from '@/db/models/UploadedFile';
+import { IUploadedFile, UploadedFile } from '@/db/models/UploadedFile';
 import connectDB from '@/db/connect';
+import type { Document } from 'mongoose';
 
-export async function getUploadedFileInfoById(id: string): Promise<Document & IUploadedFile> {
+export async function getUploadedFileInfoById(id: string): Promise<(Document & IUploadedFile) | null> {
 	await connectDB();
-	const file = await UploadedFile.findById({ _id: id });
-	return JSON.parse(JSON.stringify(file))!;
+	const file = await UploadedFile.findById(id);
+	if (!file) return null;
+	return JSON.parse(JSON.stringify(file));
 }
 
-export async function getUploadedFileInfoBySlug(slug: string): Promise<Document & IUploadedFile> {
+export async function getUploadedFileInfoBySlug(slug: string): Promise<(Document & IUploadedFile) | null> {
 	await connectDB();
 	const file = await UploadedFile.findOne({ slug });
-	return JSON.parse(JSON.stringify(file))!;
+	if (!file) return null;
+	return JSON.parse(JSON.stringify(file));
 }

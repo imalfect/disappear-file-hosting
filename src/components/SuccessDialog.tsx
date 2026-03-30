@@ -1,82 +1,85 @@
 'use client';
+
 import { Button } from '@/components/ui/button';
-import { useReward } from 'react-rewards';
 import {
 	Dialog,
 	DialogContent,
 	DialogDescription,
-	DialogFooter,
 	DialogHeader,
 	DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
-import {useState} from 'react';
-export default function SuccessDialog(props: {
-	// eslint-disable-next-line react/require-default-props
+import { Check, Copy, ExternalLink } from 'lucide-react';
+import { useState } from 'react';
+
+interface SuccessDialogProps {
 	open: boolean;
+	onOpenChange: (open: boolean) => void;
 	fullLink: string;
-	onOpenChange: () => void;
 	shortLink?: string;
-}) {
-	const { reward } = useReward('rewardId', 'confetti', {
-		lifetime: 75,
-		spread: 40,
-		startVelocity: 15,
-	});
-	const [buttonText, setButtonText] = useState('Copy full link');
-	const copyLink = (link: string) => {
-		setButtonText('Copied!');
-		navigator.clipboard.writeText(link);
-		setTimeout(() => {
-			setButtonText('Copy full link');
-		}, 2000);
+}
+
+export default function SuccessDialog({ open, onOpenChange, fullLink, shortLink }: SuccessDialogProps) {
+	const [copiedFull, setCopiedFull] = useState(false);
+	const [copiedShort, setCopiedShort] = useState(false);
+
+	const copyToClipboard = (text: string, type: 'full' | 'short') => {
+		navigator.clipboard.writeText(text);
+		if (type === 'full') {
+			setCopiedFull(true);
+			setTimeout(() => setCopiedFull(false), 2000);
+		} else {
+			setCopiedShort(true);
+			setTimeout(() => setCopiedShort(false), 2000);
+		}
 	};
+
 	return (
-		<Dialog open={props.open} onOpenChange={props.onOpenChange}>
-			<DialogContent className="sm:max-w-[425px] ">
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="sm:max-w-md">
 				<DialogHeader>
-					<DialogTitle>Uploaded successfully 🎉</DialogTitle>
+					<DialogTitle>Upload complete</DialogTitle>
 					<DialogDescription>
-                        Your file has been uploaded successfully. You can access it using the link below.
+						Your file is live and will expire in 24 hours.
 					</DialogDescription>
 				</DialogHeader>
-				<div className="grid gap-2 py-2">
-					<div className="grid grid-cols-4 items-center gap-4">
-						<Label htmlFor="name" className="text-left text-lg">
-                            Full link
-						</Label>
-						<a href={props.fullLink}
-							target="_blank"
-							rel="noreferrer"
-							className={'text-primary underline'}>
-							{props.fullLink}
-						</a>
-					</div>
-					{props.shortLink ? (
-						<div className="grid grid-cols-4 items-center gap-4">
-							<Label htmlFor="username" className="text-left text-lg">
-								Short link
-							</Label>
-							<a
-								href={props.shortLink}
-								target="_blank"
-								rel="noreferrer"
-								className={'text-primary underline'}>
-								{props.shortLink}
-							</a>
+				<div className="space-y-3">
+					<div className="flex items-center gap-2">
+						<div className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm font-mono truncate">
+							{fullLink}
 						</div>
-					) : null}
-				</div>
-				<DialogFooter>
-					<div className={'flex flex-col text-center'}>
-						<span id="rewardId"></span>
 						<Button
-							type="submit"
-							onClick={() => {copyLink(props.fullLink);reward();}}>
-							{buttonText}
+							variant="outline"
+							size="icon"
+							onClick={() => copyToClipboard(fullLink, 'full')}
+						>
+							{copiedFull ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+						</Button>
+						<Button variant="outline" size="icon" asChild>
+							<a href={fullLink} target="_blank" rel="noreferrer">
+								<ExternalLink className="h-4 w-4" />
+							</a>
 						</Button>
 					</div>
-				</DialogFooter>
+					{shortLink && (
+						<div className="flex items-center gap-2">
+							<div className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm font-mono truncate">
+								{shortLink}
+							</div>
+							<Button
+								variant="outline"
+								size="icon"
+								onClick={() => copyToClipboard(shortLink, 'short')}
+							>
+								{copiedShort ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+							</Button>
+							<Button variant="outline" size="icon" asChild>
+								<a href={shortLink} target="_blank" rel="noreferrer">
+									<ExternalLink className="h-4 w-4" />
+								</a>
+							</Button>
+						</div>
+					)}
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
