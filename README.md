@@ -2,8 +2,6 @@
 
 Temporary file hosting — files vanish after 24 hours.
 
-Live at [dspr.lol](https://dspr.lol)
-
 ## Stack
 
 - Next.js 16 (Turbopack)
