@@ -47,7 +47,13 @@ export async function POST(request: NextRequest) {
 		}
 	}
 
-	const data = await request.formData();
+	let data: FormData;
+	try {
+		data = await request.formData();
+	} catch {
+		return NextResponse.json({ error: 'Request too large or malformed' }, { status: 413 });
+	}
+
 	const file = data.get('file') as File;
 
 	if (!file) {
